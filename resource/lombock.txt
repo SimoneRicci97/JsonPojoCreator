@@ -1,0 +1,5 @@
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Accessors(chain = true)
