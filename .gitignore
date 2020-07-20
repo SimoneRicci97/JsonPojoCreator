@@ -132,7 +132,6 @@ dmypy.json
 *.java
 src/
 out/
-test/
 
 # PyCharm
 .idea

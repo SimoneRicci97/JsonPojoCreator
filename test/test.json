@@ -1,0 +1,21 @@
+{
+    "field1": 10,
+    "field2": "Hello",
+    "field3": {
+        "field3_1": {
+            "field3_1_1": "Json",
+            "field3_1_2": "Pojo"
+        },
+        "field3_2": "Creator"
+    },
+    "field4": {
+        "field4_1": "Goodbye",
+        "field4_2": [{
+            "field3_1_1": "Json",
+            "field3_1_2": "Pojo"
+        }, {
+            "field3_1_1": "Clone",
+            "field3_1_2": "Me"
+        }]
+    }
+}

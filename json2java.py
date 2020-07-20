@@ -63,8 +63,8 @@ def json2java_argparse():
     if options.package[-1] == '/':
         options.package = options.package[:-1]
 
-    if options.ignore is not None:
-        options.ignore = options.ignore.split(',')
+
+    options.ignore = options.ignore.split(',') if options.ignore is not None else []
 
     return options
 
@@ -130,11 +130,11 @@ def map_json_type(jstype):
 
 
 def new_class_structure(dict_class, found):
-    for structure in found:
+    for classname, structure in found.items():
         for k, v in dict_class.items():
             for k1, v1 in structure.items():
                 if k == k1 and type(v) == type(v1):
-                    return k
+                    return classname
     return None
 
 
@@ -143,80 +143,53 @@ def json2class(json, structures, **kwargs):
     classname = kwargs['classname']
     package = kwargs['package']
     jsonproperty = kwargs['jsonproperty'] if 'jsonproperty' in kwargs else None
-    ignore = kwargs['ignore'] if 'ignore' in kwargs else None
+    ignore = kwargs['ignore'] if 'ignore' in kwargs else []
     jsonignore = kwargs['jsonignore'] if 'jsonignore' in kwargs else None
     lombock = kwargs['lombock']
-    use_inner = kwargs['inner']
+
     jclass = JavaClass(classname, package, extclass)
 
     classes = []
 
     if lombock:
-        if extclass is None:
-            jclass.imports.extend(read_file('resource/imports.txt'))
+        jclass.imports.extend(read_file('resource/imports.txt'))
         jclass.add_annotations(read_file('resource/lombock.txt'))
 
-    for k, v in json.items():
-        if ignore is None or k not in ignore:
-            print(f'building class for field {k}')
-            jtype = map_json_type(type(v))
-            if jtype is not None:
-                jclass.add_field(map_json_name(k), jtype,
-                                 jsonproperty=k, jsonignore=jsonignore, getter=not lombock, setter=not lombock)
-            elif type(v) == dict:
-                if new_class_structure(v, structures) is None:
-                    structures.append(v)
-                    if not use_inner:
-                        other_class = json2class(v, structures, classname=map_json_name(k, isclass=True),
-                                                 lombock=lombock, package=package, ignore=ignore,
-                                                 jsonproperty=jsonproperty, jsonignore=jsonignore, inner=use_inner)
-                        classes.extend(other_class)
-                    else:
-                        if extclass is None:
-                            innerclass = json2class(v, structures, extclass=jclass,
-                                                    classname=map_json_name(k, isclass=True),
-                                                    lombock=lombock, package=package, ignore=ignore,
-                                                    jsonproperty=jsonproperty, jsonignore=jsonignore, inner=use_inner)
-                            jclass.innerclasses.extend(innerclass)
-                        else:
-                            innerclass = json2class(v, structures, extclass=extclass,
-                                                    classname=map_json_name(k, isclass=True),
-                                                    lombock=lombock, package=package, ignore=ignore,
-                                                    jsonproperty=jsonproperty, jsonignore=jsonignore, inner=use_inner)
-                            extclass.innerclasses.extend(innerclass)
-
-                    jclass.add_field(map_json_name(k), map_json_name(k, isclass=True), jsonproperty=k,
-                                     jsonignore=jsonignore, getter=not lombock, setter=not lombock)
-                else:
-                    jclass.add_field(map_json_name(k), map_json_name(k, isclass=True), jsonproperty=k,
-                                     jsonignore=jsonignore, getter=not lombock, setter=not lombock)
-            elif type(v) == list and len(v) > 0:
-                structures.append(v[0])
-                if not use_inner:
-                    other_class = json2class(v[0], classname=map_json_name(k, isclass=True) + 'Item',
-                                             lombock=lombock, package=package, ignore=ignore,
-                                             jsonproperty=jsonproperty, jsonignore=jsonignore, inner=use_inner)
-                    classes.extend(other_class)
-                else:
-                    if extclass is None:
-                        innerclass = json2class(v[0], extclass=jclass,
-                                                classname=map_json_name(k, isclass=True) + 'Item',
-                                                lombock=lombock, package=package, ignore=ignore,
-                                                jsonproperty=jsonproperty, jsonignore=jsonignore, inner=use_inner)
-                        jclass.innerclasses.extend(innerclass)
-                    else:
-                        innerclass = json2class(v[0], extclass=extclass,
-                                                classname=map_json_name(k, isclass=True) + 'Item',
-                                                lombock=lombock, package=package, ignore=ignore,
-                                                jsonproperty=jsonproperty, jsonignore=jsonignore, inner=use_inner)
-                        extclass.innerclasses.extend(innerclass)
-
+    for k, v in [(k1, v1) for k1, v1 in json.items() if v1 not in ignore]:
+        jtype = map_json_type(type(v))
+        if jtype is not None:
+            jclass.add_field(map_json_name(k), jtype,
+                             jsonproperty=k, jsonignore=jsonignore, getter=not lombock, setter=not lombock)
+        elif type(v) == dict:
+            existent_class = new_class_structure(v, structures)
+            if existent_class is None:
+                structures[k] = v
+                other_class = json2class(v, structures, classname=map_json_name(k, isclass=True),
+                                         lombock=lombock, package=package, ignore=ignore,
+                                         jsonproperty=jsonproperty, jsonignore=jsonignore)
+                classes.extend(other_class)
+                jclass.add_field(map_json_name(k), map_json_name(k, isclass=True), jsonproperty=k,
+                                 jsonignore=jsonignore, getter=not lombock, setter=not lombock)
+            else:
+                jclass.add_field(map_json_name(k), map_json_name(existent_class, isclass=True), jsonproperty=k,
+                                 jsonignore=jsonignore, getter=not lombock, setter=not lombock)
+        elif type(v) == list and len(v) > 0:
+            existent_class = new_class_structure(v[0], structures)
+            if existent_class is None:
+                structures[k] = v[0]
+                other_class = json2class(v[0], structures, classname=map_json_name(k, isclass=True) + 'Item',
+                                         lombock=lombock, package=package, ignore=ignore,
+                                         jsonproperty=jsonproperty, jsonignore=jsonignore)
+                classes.extend(other_class)
                 jclass.add_import('import java.util.List;\n')
                 jclass.add_field(map_json_name(k), f'List<{map_json_name(k, isclass=True)}>', jsonproperty=k,
-                                 jsonignore=jsonignore, getter=not lombock, setter=not lombock)
+                                jsonignore=jsonignore, getter=not lombock, setter=not lombock)
+            else:
+                jclass.add_field(map_json_name(k), f'List<{map_json_name(existent_class, isclass=True)}>',
+                                 jsonproperty=k, jsonignore=jsonignore, getter=not lombock, setter=not lombock)
 
-            print(f'created class {jclass.name}')
-            classes.append(jclass)
+
+    classes.append(jclass)
     return classes
 
 
@@ -230,13 +203,12 @@ def main():
     if type(json_dict) == list:
         json_dict = json_dict[0]
 
-    classes = json2class(json_dict, [], classname=args.classname, lombock=args.lombock,
+    classes = json2class(json_dict, {}, classname=args.classname, lombock=args.lombock,
                         package=args.package[len('src/main/java/'):].replace('/', '.'),
                         jsonproperty=args.jsonproperty, ignore=args.ignore, inner=args.inner,
                          jsonignore=args.jsonignore)
 
-    for jclass in classes:
-        JavaClassWriter(jclass).write()
+    JavaClassWriter(classes, inner=args.inner).write()
 
 
 if __name__ == '__main__':

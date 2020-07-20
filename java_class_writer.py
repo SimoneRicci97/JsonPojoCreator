@@ -21,7 +21,7 @@ class JavaClass:
         self.name = classname
         self.indlevel = 1 if extclass is not None else 0
         self.package = package
-        self.classname = get_class_header_name(' static' if extclass is not None else '', classname, self.indlevel)
+        self.classname = get_class_header_name(' static' if extclass is not None else '', self.name, self.indlevel)
         self.innerclasses = []
         self.classannotations = []
         self.imports = []
@@ -79,12 +79,46 @@ class JavaClass:
         self_str += '\t' * self.indlevel + '}\n'
         return self_str
 
+    def header(self, indlevel=0):
+        self.classname = get_class_header_name(' static' if indlevel > 0 else '', self.name, indlevel)
+        self_hdr = ''
+        if self.extclass is None:
+            self_hdr += f'package {self.package};\n\n'
+            self_hdr += ''.join(self.imports)
+        self_hdr += '\n' + ''.join(['\t' * indlevel + ann for ann in self.classannotations])
+        self_hdr += self.classname
+        self_hdr += '\n'
+
+        return self_hdr
+
+    def footer(self, indlevel=0):
+        self_ftr = ''
+        self_ftr += '\n'.join(['\t' * indlevel + str(ic) for ic in self.innerclasses])
+        self_ftr += '\n'
+        self_ftr += ''.join(['\t' * indlevel + f for f in self.fields])
+        self_ftr += '\n'.join(['\t' * indlevel + m for m in self.method])
+        self_ftr += '\t' * indlevel + '}\n'
+        return self_ftr
+
+    def body(self, indlevel=1):
+        self.classname = get_class_header_name(' static' if indlevel > 0 else '', self.name, indlevel)
+        self_bdy = ''
+        self_bdy += '\n' + ''.join(['\t' * indlevel + ann for ann in self.classannotations])
+        self_bdy += self.classname
+        self_bdy += '\n'.join(['\t' * indlevel + str(ic) for ic in self.innerclasses])
+        self_bdy += '\n'
+        self_bdy += ''.join(['\t' * indlevel + f for f in self.fields])
+        self_bdy += '\n'.join(['\t' * indlevel + m for m in self.method])
+        self_bdy += '\t' * indlevel + '}\n'
+        return self_bdy
+
 
 class JavaClassWriter:
-    def __init__(self, javaclass):
-        path = 'src/main/java/' + javaclass.package.replace('.', '/')
-        self.path = f'{path}/{javaclass.name}.java'
-        self.javaclass = javaclass
+    def __init__(self, javaclasses, **kwargs):
+        self.path = 'src/main/java/' + javaclasses[0].package.replace('.', '/')
+        self.javaclasses = javaclasses
+        self.f = None
+        self.use_inner = kwargs['inner']
 
     @staticmethod
     def __writelines(lines, f):
@@ -93,8 +127,29 @@ class JavaClassWriter:
         else:
             print(lines)
 
+    def __write_class(self, jclass):
+        self.__writelines(str(jclass), self.f)
+
+    def __write_header(self, jclass):
+        self.__writelines(jclass.header(), self.f)
+
+    def __write_footer(self, jclass):
+        self.__writelines(jclass.footer(), self.f)
+
+    def __write_body(self, jclass):
+        self.__writelines(jclass.body(), self.f)
+
     def write(self):
-        f = None
-        if self.path is not None:
-            f = open(self.path, 'w')
-        self.__writelines(str(self.javaclass), f)
+        if not self.use_inner:
+            for jclass in self.javaclasses:
+                self.f = open(f'{self.path}/{jclass.name}.java', 'w')
+                self.__write_class(jclass)
+                self.f.close()
+        else:
+            extclass = self.javaclasses[-1]
+            self.f = open(f'{self.path}/{extclass.name}.java', 'w')
+            self.__write_header(extclass)
+            for jclass in self.javaclasses[:-1]:
+                self.__write_body(jclass)
+            self.__write_footer(extclass)
+            self.f.close()
