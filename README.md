@@ -19,7 +19,20 @@ In addition to the already explained command line options you can use the option
 classes, instead of external files with their own public classes, for the internal JSON objects.
 
 Another interesting option is the `-e, --exclude` option that will allow you to completely ignore the JSON properties 
-specified in the comma separated list.
+specified in the comma separated list (These properties won't appear in Java class).  
+
+A really useful option is the `-f, --conf` option. It allows you to use a conf file, written in JSON format (yes, pojoc 
+can translate this in a Pojo too :smirk:). The JSON object can contain the same options specified in help message (except  
+for `-h`, `-v` and `-f`) with the same semantic. The main advantages of use a JSON conf file rather than command line
+arguments are that you can quickly change it to build different Java entity based on different JSON schemes.
+In addition you can specify an option (through a property named "additionalOptions"). The value of "additionalOptions" is a JSON 
+object that represents a key-value map. The properties of this map can be:
+- The names of fields that in JSON scheme have another JSON object as value. The value mapped to this key will be the 
+name of the class representing the JSON object.
+- "superclass" (type: string) which allows you to specify the superclass of your main Pojo (TBD)
+- "serializable" (type: boolean) make **ALL** the created classes serializable (with the _implements_ construct and a 
+_static final long serialVersionUID_) (TBD)
+- "builder" (type: boolean) add a builder to every created class (using @Builder annotation if lombock is used) (TBD)
 
 ### Coming soon
 1. Possibility to decide superclass/superinterface of your pojo

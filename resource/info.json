@@ -1,0 +1,13 @@
+{
+  "name": "PojoCreator",
+  "version": {
+    "major": "0",
+    "minor": "1",
+    "patch": "0"
+  },
+  "links": {
+    "github": {
+      "href": "https://github.com"
+    }
+  }
+}

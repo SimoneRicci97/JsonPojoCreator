@@ -1,0 +1,13 @@
+//This is a complete example of a JSON config file to use to run pojoc with -f option.
+//Note that this file is not valid as conf file to run pojoc. Create another (or rename this) with name
+//pojobuilder.conf.json
+{
+  "json": "test/test.json",
+  "classname": "Test",
+  "lombock": true,
+  "json_property": true,
+  "exclude": [],
+  "package": "src/main/java/com/example/jsonpojocreator/model",
+  "inner": true,
+  "ignore": []
+}

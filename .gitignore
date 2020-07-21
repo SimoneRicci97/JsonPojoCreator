@@ -132,6 +132,7 @@ dmypy.json
 *.java
 src/
 out/
+pojobuilder.conf.json
 
 # PyCharm
 .idea
