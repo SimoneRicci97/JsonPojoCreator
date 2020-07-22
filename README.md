@@ -29,13 +29,13 @@ In addition you can specify an option (through a property named "additionalOptio
 object that represents a key-value map. The properties of this map can be:
 - The names of fields that in JSON scheme have another JSON object as value. The value mapped to this key will be the 
 name of the class representing the JSON object.
-- "superclass" (type: string) which allows you to specify the superclass of your main Pojo (TBD)
+- "superclass" (type: string) which allows you to specify the superclass of your main Pojo
 - "serializable" (type: boolean) make **ALL** the created classes serializable (with the _implements_ construct and a 
-_static final long serialVersionUID_) (TBD)
+_static final long serialVersionUID_) 
 - "builder" (type: boolean) add a builder to every created class (using @Builder annotation if lombock is used) (TBD)
 
 ### Coming soon
-1. Possibility to decide superclass/superinterface of your pojo
+1. Possibility to decide superclass of your pojo
 2. More libraries (as Gson, javax and so on) to allow you to manipulate JSON and Java object as you prefer
-3. The overridin of toString, equals and hashCode methods
+3. The overriding of toString, equals and hashCode methods
 4. A simple GUI to make you faster to build your Java pojo

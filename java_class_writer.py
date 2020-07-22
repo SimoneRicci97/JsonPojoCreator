@@ -1,4 +1,4 @@
-
+import random
 
 def get_getter(field_type, fieldname, indlevel=0):
     return '\t' * indlevel + f'\tpublic {field_type} get{fieldname.capitalize()}()' + '{\n' + \
@@ -6,14 +6,19 @@ def get_getter(field_type, fieldname, indlevel=0):
            '\t' * indlevel + '\t}\n'
 
 
-def get_setter(ret_type, fieldname, indlevel=0):
-    return '\t' * indlevel + f"\tpublic void set{fieldname.capitalize()}({ret_type} {fieldname}) " + '{\n' + \
+def get_setter(field_type, fieldname, classname, indlevel=0):
+    return '\t' * indlevel + f"\tpublic {classname} set{fieldname.capitalize()}({field_type} {fieldname}) " + '{\n' + \
            '\t' * indlevel + f"\t\tthis.{fieldname} = {fieldname};\n" + \
+           '\t' * indlevel + f"\t\treturn this;\n" + \
            '\t' * indlevel + '\t}\n'
 
 
-def get_class_header_name(static, classname, indlevel=0):
-    return '\t' * indlevel + f"public{static} class {classname}" + ' {\n'
+def get_class_header_name(static, classname, indlevel=0, superclass=None, serializable=False):
+    return '\t' * indlevel + f"public{static} class {classname}" + \
+           (f" extends {superclass}" if superclass is not None else '') + \
+           (" implements Serializable" if serializable else '') + \
+           ' {\n'
+
 
 def get_default_constructor(classname, indlevel=0):
     return '\t' * indlevel + f"\tpublic {classname}()" + ' {\n' + \
@@ -28,37 +33,56 @@ class AllArgsConstructor:
         self.fields = []
 
     def add_field(self, field):
-        if type(field) != tuple or len(field) != 2:
-            raise ValueError('field must be a tuple like (<type>, <name>)')
         self.fields.append(field)
 
     def __str__(self):
         self_str = ''
         self_str += '\t' * self.indlevel + f"\tpublic {self.classname}("
         for field in self.fields:
-            self_str += f"{field[0]} {field[1]}"
+            self_str += f"{field.type} {field.name}"
             self_str += ', ' if field != self.fields[-1] else ') {\n'
         for field in self.fields:
-            self_str += '\t' * self.indlevel + f"\t\tthis.{field[1]} = {field[1]};\n"
+            self_str += '\t' * self.indlevel + f"\t\tthis.{field.name} = {field.name};\n"
         self_str += '\t' * self.indlevel + '\t}\n\n'
         return self_str
 
 
+class JavaField:
+    def __init__(self, type, name, indlevel=0):
+        self.type = type
+        self.name = name
+        self.indlevel = indlevel
+
+    def __str__(self):
+        return f"\tprivate {self.type} {self.name};"
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.type == self.type
+
+
 class JavaClass:
-    def __init__(self, classname, package, extclass=None):
+    def __init__(self, classname, package, extclass=None, superclass=None, serializable=False):
         self.extclass = extclass
-        self.indlevel = 1 if extclass is not None else 0
         self.name = classname
+        self.indlevel = 1 if extclass is not None else 0
+        self.all_args_constructor = AllArgsConstructor(self.name, self.indlevel)
         self.package = package
-        self.classname = get_class_header_name(' static' if extclass is not None else '', self.name, self.indlevel)
+        self.superclass = superclass
+        self.serializable = serializable
         self.innerclasses = []
         self.classannotations = []
         self.imports = []
         self.fields = []
         self.default_constructor = None
-        self.all_args_constructor = AllArgsConstructor(self.name, self.indlevel)
-        self.method = []
+        self.jsonproperties = dict()
+        self.jsonignore = list()
+        self.getters = list()
+        self.setters = list()
         self.extclass = extclass
+        self.init = True
 
     def add_annotations(self, anns):
         self.classannotations.extend(anns)
@@ -66,99 +90,121 @@ class JavaClass:
 
     def add_field(self, name, fieldtype, jsonproperty=None, jsonignore=False,
                   getter=False, setter=False, constructors=False):
-        field_info = []
 
         if fieldtype == 'BigDecimal':
             self.add_import('import java.math.BigDecimal;')
+        field = JavaField(fieldtype, name)
 
         if jsonproperty is not None:
-            field_info.append('\t@JsonProperty(\"{}\")\n'.format(jsonproperty))
+            self.jsonproperties[field] = jsonproperty
             self.add_import('import com.fasterxml.jackson.annotation.JsonProperty;\n')
 
         if jsonignore:
-            field_info.append('\t@JsonIgnore\n')
+            self.jsonignore.append(field)
             self.add_import('import com.fasterxml.jackson.annotation.JsonIgnore;\n')
 
-        field_info.append(f'\tprivate {fieldtype} {name};')
-
-        for info in field_info:
-            self.fields.append(info)
-        self.fields.append('\n\n')
+        self.fields.append(field)
 
         if constructors:
             if self.default_constructor is None:
                 self.default_constructor = get_default_constructor(self.name, self.indlevel)
-            self.all_args_constructor.add_field((fieldtype, name))
+            self.all_args_constructor.add_field(field)
+        else:
+            self.all_args_constructor = None
 
         if getter:
-            self.method.append(get_getter(fieldtype, name, self.indlevel))
+            self.getters.append(field)
 
         if setter:
-            self.method.append(get_setter(fieldtype, name, self.indlevel))
+            self.setters.append(field)
 
     def add_import(self, importrow):
-        if self.extclass is not None and self.extclass.imports.count(importrow) == 0:
-            self.extclass.imports.append(importrow)
+        if self.extclass is not None:
+            self.extclass.add_import(importrow)
         elif self.imports.count(importrow) == 0:
             self.imports.append(importrow)
 
+    def __setattr__(self, key, value):
+        if not hasattr(self, 'init'):
+            super().__setattr__(key, value)
+            return
+        if key == 'indlevel':
+            super().__setattr__(key, value)
+            self.default_constructor = get_default_constructor(self.name, self.indlevel)
+            if self.all_args_constructor is not None:
+                self.all_args_constructor.indlevel = value
+        elif key == 'serializable' and value:
+            super().__setattr__(key, value)
+            self.add_import('import java.io.Serializable;\n')
+        else:
+            super().__setattr__(key, value)
+
     def __str__(self):
-        self_str = ''
-        if self.extclass is None:
-            self_str += f'package {self.package};\n\n' if self.package is not None else '\n'
-            self_str += ''.join(self.imports)
-        self_str += '\n' + ''.join(['\t' * self.indlevel + ann for ann in self.classannotations])
-        self_str += self.classname
-        self_str += '\n'.join(['\t' * self.indlevel + str(ic) for ic in self.innerclasses])
-        self_str += '\n'
-        self_str += ''.join(['\t' * self.indlevel + f for f in self.fields])
-        self_str += self.default_constructor if self.default_constructor is not None else ''
-        self_str += str(self.all_args_constructor)
-        self_str += '\n'.join(['\t' * self.indlevel + m for m in self.method])
-        self_str += '\t' * self.indlevel + '}\n'
-        return self_str
+        return self.header() + self.footer()
+        # self_str = ''
+        # classname = get_class_header_name(' static' if self.extclass is not None else '',
+        #                                   self.name, self.indlevel, self.superclass, self.serializable)
+        # if self.extclass is None:
+        #     self_str += f'package {self.package};\n\n' if self.package is not None else '\n'
+        #     self_str += ''.join(self.imports)
+        # self_str += '\n' + ''.join(['\t' * self.indlevel + ann for ann in self.classannotations])
+        # self_str += classname
+        # self_str += '\n'.join(['\t' * self.indlevel + str(ic) for ic in self.innerclasses])
+        # self_str += '\n'
+        # self_str += ''.join(['\t' * self.indlevel + f for f in self.fields])
+        # self_str += self.default_constructor if self.default_constructor is not None else ''
+        # self_str += str(self.all_args_constructor)
+        # self_str += '\n'.join(['\t' * self.indlevel + m for m in self.method])
+        # self_str += '\t' * self.indlevel + '}\n'
+        # return self_str
 
     def header(self, indlevel=0):
-        self.classname = get_class_header_name(' static' if indlevel > 0 else '', self.name, indlevel)
+        classname = get_class_header_name(' static' if indlevel > 0 else '',
+                                          self.name, indlevel, self.superclass, self.serializable)
         self_hdr = ''
         if self.extclass is None:
             self_hdr += f'package {self.package};\n\n' if self.package is not None else '\n'
             self_hdr += ''.join(self.imports)
         self_hdr += '\n' + ''.join(['\t' * indlevel + ann for ann in self.classannotations])
-        self_hdr += self.classname
+        self_hdr += classname
         self_hdr += '\n'
 
         return self_hdr
 
     def footer(self, indlevel=0):
         self_ftr = ''
+        if self.serializable:
+            self_ftr += '\n' + '\t' * indlevel + f"\tprivate static final long serialVersionUID = " \
+                        f"-{random.randint(20, 30) ** random.randint(20, 30)}L;\n"
         self_ftr += '\n'.join(['\t' * indlevel + str(ic) for ic in self.innerclasses])
         self_ftr += '\n'
-        self_ftr += ''.join(['\t' * indlevel + f for f in self.fields])
+        for f in self.fields:
+            if f in self.jsonproperties:
+                self_ftr += '\t' * self.indlevel + '\t@JsonProperty(\"{}\")\n'.format(self.jsonproperties[f])
+            if f in self.jsonignore:
+                self_ftr += '\t' * self.indlevel + '\t@JsonIgnore\n'
+            self_ftr += '\t' * self.indlevel + str(f) + '\n\n'
         self_ftr += self.default_constructor if self.default_constructor is not None else ''
-        self_ftr += str(self.all_args_constructor)
-        self_ftr += '\n'.join(['\t' * indlevel + m for m in self.method])
+        self_ftr += str(self.all_args_constructor) if self.all_args_constructor is not None else ''
+        self_ftr += '\n'.join([get_getter(g.type, g.name, self.indlevel) for g in self.getters])
+        self_ftr += '\n'
+        self_ftr += '\n'.join([get_setter(s.type, s.name, self.name, self.indlevel) for s in self.setters])
         self_ftr += '\t' * indlevel + '}\n'
         return self_ftr
 
     def body(self, indlevel=1):
-        self.classname = get_class_header_name(' static' if indlevel > 0 else '', self.name, indlevel)
+        classname = get_class_header_name(' static' if indlevel > 0 else '',
+                                          self.name, indlevel, self.superclass, self.serializable)
         self_bdy = ''
         self_bdy += '\n' + ''.join(['\t' * indlevel + ann for ann in self.classannotations])
-        self_bdy += self.classname
-        self_bdy += '\n'.join(['\t' * indlevel + str(ic) for ic in self.innerclasses])
-        self_bdy += '\n'
-        self_bdy += ''.join(['\t' * indlevel + f for f in self.fields])
-        self_bdy += self.default_constructor if self.default_constructor is not None else ''
-        self_bdy += str(self.all_args_constructor)
-        self_bdy += '\n'.join(['\t' * indlevel + m for m in self.method])
-        self_bdy += '\t' * indlevel + '}\n'
+        self_bdy += classname
+        self_bdy += self.footer(indlevel)
         return self_bdy
 
 
 class JavaClassWriter:
     def __init__(self, javaclasses, **kwargs):
-        self.path = kwargs['path']  # 'src/main/java/' + javaclasses[0].package.replace('.', '/')
+        self.path = kwargs['path']
         self.javaclasses = javaclasses
         self.f = None
         self.use_inner = kwargs['inner']
@@ -193,6 +239,7 @@ class JavaClassWriter:
             self.f = open(f'{self.path}/{extclass.name}.java', 'w')
             self.__write_header(extclass)
             for jclass in self.javaclasses[:-1]:
+                jclass.indlevel = 1
                 self.__write_body(jclass)
             self.__write_footer(extclass)
             self.f.close()
