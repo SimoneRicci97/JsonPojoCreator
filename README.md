@@ -3,24 +3,36 @@
 
 JsonPojoCreator helps you to create a Java class representing the structure of a given JSON object.
 
-You just need to run JsonPojoCreator and you will find a class (named as you have specified, in the package that 
+You just need to run **pojoc** and you will find a class (named as you have specified, in the package that 
 you have specified) with:  
 1. all fields those had been found in the JSON object. The field name will be the same as the JSON object property name, 
-but using CamelCase notation. So you are recommended to run JsonPojoCreator using the `-q --json_property` option. So 
-JsonPojoCreator will use the @JsonProperty annotation over every attribute, allowing you to have a clear java object 
+but using CamelCase notation. So you are recommended to run JsonPojoCreator using the `-q, --json_property` option 
+(see below).
+So JsonPojoCreator will use the @JsonProperty annotation over every attribute, allowing you to have a clear java object 
 to json string (and vice versa) conversion.  
 Using option `-i, --jsonignore` you can specify a comma separated list of fields that must be annoted with @JsonIgnore 
 annotation.  
 2. every field will provided of getter and setter method those can be replaced (using `-l, --lombock` option) by the 
 proper lombock annotation.
-3. same as point 2. is valid for default constructor (0 arguments) and the all arguments constructor.  
+3. same as point 2. applies to default constructor (0 arguments) and the all arguments constructor.  
 
-In addition to the already explained command line options you can use the option `-I, --inner` to build inner static  
-classes, instead of external files with their own public classes, for the internal JSON objects.
+## pojoc options
+- `-h, --help` do you really need this option explained?
+- `-j, --json` specify the file where read the JSON object or, if you have sins to be punished for, you can specify  
+the json by command line.
+- `-c, --classname` specify the class name of your main Pojo. If none **pojoc** will use the file name.
+- `-v, --version` like all the noteworthy tools, print the version of **pojoc**
+- `-l, --lombock` use lombock annotations instead of getter/setter and constructors
+- `-q, --json_property` because of **pojoc** translate JSON properties name in CamelCase notation this option add
+the `@JsonProperty("<json-property>")` over each class field
+- `-e, --exclue` a comma separated list which specifies the JSON properties those must not appear in created Pojos
+- `-i, --jsonignore` will add `@JsonIgnore` annotation over fields specified in comma separated list
+- `-p, --package` Path where you will find java class/es. The default value is '.'. It must contain the subpath
+'src/main/java/' and the next portion will represent the package name for the class/es
+- `-I, --inner` use innser classes instead of build a Java file for each created class 
 
-Another interesting option is the `-e, --exclude` option that will allow you to completely ignore the JSON properties 
-specified in the comma separated list (These properties won't appear in Java class).  
 
+## Configuration file
 A really useful option is the `-f, --conf` option. It allows you to use a conf file, written in JSON format (yes, pojoc 
 can translate this in a Pojo too :wink:). The JSON object can contain the same options specified in help message (except  
 for `-h`, `-v` and `-f`) with the same semantic. The main advantages of use a JSON conf file rather than command line
