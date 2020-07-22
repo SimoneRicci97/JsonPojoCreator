@@ -7,11 +7,7 @@ You just need to run **pojoc** and you will find a class (named as you have spec
 you have specified) with:  
 1. all fields those had been found in the JSON object. The field name will be the same as the JSON object property name, 
 but using CamelCase notation. So you are recommended to run JsonPojoCreator using the `-q, --json_property` option 
-(see below).
-So JsonPojoCreator will use the @JsonProperty annotation over every attribute, allowing you to have a clear java object 
-to json string (and vice versa) conversion.  
-Using option `-i, --jsonignore` you can specify a comma separated list of fields that must be annoted with @JsonIgnore 
-annotation.  
+(see below). 
 2. every field will provided of getter and setter method those can be replaced (using `-l, --lombock` option) by the 
 proper lombock annotation.
 3. same as point 2. applies to default constructor (0 arguments) and the all arguments constructor.  
