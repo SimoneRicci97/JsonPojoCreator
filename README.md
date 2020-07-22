@@ -12,6 +12,10 @@ but using CamelCase notation. So you are recommended to run JsonPojoCreator usin
 proper lombock annotation.
 3. same as point 2. applies to default constructor (0 arguments) and the all arguments constructor.  
 
+N.B.: for setters methods **pojoc** use the chain pattern. It's so. You can change it? No. Is there an option to build 
+setter method with no chain pattern? No. If you don't like chain pattern you deserve to build your pojo with your own 
+hand.
+
 ## pojoc options
 - `-h, --help` do you really need this option explained?
 - `-j, --json` specify the file where read the JSON object or, if you have sins to be punished for, you can specify  
@@ -44,7 +48,6 @@ _static final long serialVersionUID_)
 - "builder" (type: boolean) add a builder to every created class (using @Builder annotation if lombock is used) (TBD)
 
 ### Coming soon
-1. Possibility to decide superclass of your pojo
-2. More libraries (as Gson, javax and so on) to allow you to manipulate JSON and Java object as you prefer
-3. The overriding of toString, equals and hashCode methods
-4. A simple GUI to make you faster to build your Java pojo
+- More libraries (as Gson, javax and so on) to allow you to manipulate JSON and Java object as you prefer
+- The overriding of toString, equals and hashCode methods
+- A simple GUI to make you faster to build your Java pojo
