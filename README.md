@@ -30,7 +30,7 @@ the `@JsonProperty("<json-property>")` over each class field
 
 ## Configuration file
 A really useful option is the `-f, --conf` option. It allows you to use a conf file, written in JSON format (yes, pojoc 
-can translate this in a Pojo too :wink:). The JSON object can contain the same options specified in help message (except  
+can translate this in a Pojo too :wink:). The JSON object can contain the same options specified in help message (except 
 for `-h`, `-v` and `-f`) with the same semantic. The main advantages of use a JSON conf file rather than command line
 arguments are that you can quickly change it to build different Java entity based on different JSON schemes. And at the
 same time it's quickly reusable to translate different Json schemes using the same options.
