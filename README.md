@@ -7,7 +7,7 @@ You just need to run JsonPojoCreator and you will find a class (named as you hav
 you have specified) with:  
 1. all fields those had been found in the JSON object. The field name will be the same as the JSON object property name, 
 but using CamelCase notation. So you are recommended to run JsonPojoCreator using the `-q --json_property` option. So 
-JsonPojoCreator will use the @JsonProperty annotation over every attribute, allowing you to have a simple java object 
+JsonPojoCreator will use the @JsonProperty annotation over every attribute, allowing you to have a clear java object 
 to json string (and vice versa) conversion.  
 Using option `-i, --jsonignore` you can specify a comma separated list of fields that must be annoted with @JsonIgnore 
 annotation.  
@@ -22,11 +22,12 @@ Another interesting option is the `-e, --exclude` option that will allow you to 
 specified in the comma separated list (These properties won't appear in Java class).  
 
 A really useful option is the `-f, --conf` option. It allows you to use a conf file, written in JSON format (yes, pojoc 
-can translate this in a Pojo too :smirk:). The JSON object can contain the same options specified in help message (except  
+can translate this in a Pojo too :wink:). The JSON object can contain the same options specified in help message (except  
 for `-h`, `-v` and `-f`) with the same semantic. The main advantages of use a JSON conf file rather than command line
-arguments are that you can quickly change it to build different Java entity based on different JSON schemes.
-In addition you can specify an option (through a property named "additionalOptions"). The value of "additionalOptions" is a JSON 
-object that represents a key-value map. The properties of this map can be:
+arguments are that you can quickly change it to build different Java entity based on different JSON schemes. And at the
+same time it's quickly reusable to translate different Json schemes using the same options.
+In addition you can specify a customizable option (through a property named "additionalOptions").  
+The value of "additionalOptions" is a JSON object that represents a key-value map. The properties of this map can be:
 - The names of fields that in JSON scheme have another JSON object as value. The value mapped to this key will be the 
 name of the class representing the JSON object.
 - "superclass" (type: string) which allows you to specify the superclass of your main Pojo
