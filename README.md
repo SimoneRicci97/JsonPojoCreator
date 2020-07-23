@@ -29,7 +29,8 @@ the `@JsonProperty("<json-property>")` over each class field
 - `-i, --jsonignore` will add `@JsonIgnore` annotation over fields specified in comma separated list
 - `-p, --package` Path where you will find java class/es. The default value is '.'. It must contain the subpath
 'src/main/java/' and the next portion will represent the package name for the class/es
-- `-I, --inner` use innser classes instead of build a Java file for each created class 
+- `-I, --inner` use innser classes instead of build a Java file for each created class  
+- `-s, --primitive` use primitive types
 
 
 ## Configuration file

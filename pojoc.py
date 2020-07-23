@@ -44,22 +44,18 @@ def json2class(_json, structures, **kwargs):
     extclass = kwargs['extclass'] if 'extclass' in kwargs else None
     classname = kwargs['classname']
     package = kwargs['package']
+    primitive = kwargs['primitive']
     jsonproperty = kwargs['jsonproperty'] if 'jsonproperty' in kwargs else None
     ignore = kwargs['ignore'] if 'ignore' in kwargs else []
     jsonignore = kwargs['jsonignore'] if 'jsonignore' in kwargs else None
-    lombock = kwargs['lombock']
     additionalOptions = kwargs['additionalOptions']
 
     jclass = JavaClass(classname, package, extclass)
 
     classes = []
 
-    # if lombock:
-    #     jclass.imports.extend(read_file('resource/imports.txt'))
-    #     jclass.add_annotations(read_file('resource/lombock.txt'))
-
     for k, v in [(k1, v1) for k1, v1 in _json.items() if v1 not in ignore]:
-        jtype = map_json_type(type(v))
+        jtype = map_json_type(type(v), primitive)
         if jtype is not None:
             jclass.add_field(map_json_name(k), jtype, jsonproperty=k, jsonignore=jsonignore)
         elif type(v) == dict:
@@ -67,8 +63,8 @@ def json2class(_json, structures, **kwargs):
             if existent_class is None:
                 newclassname = map_json_name(k, isclass=True) if k not in additionalOptions else additionalOptions[k]
                 structures[newclassname] = v
-                other_class = json2class(v, structures, classname=newclassname,
-                                         lombock=lombock, package=package, ignore=ignore,
+                other_class = json2class(v, structures, classname=newclassname, primitive=primitive,
+                                         package=package, ignore=ignore,
                                          jsonproperty=jsonproperty, jsonignore=jsonignore,
                                          additionalOptions=additionalOptions)
                 classes.extend(other_class)
@@ -83,7 +79,7 @@ def json2class(_json, structures, **kwargs):
             if existent_class is None:
                 structures[k] = v[0]
                 other_class = json2class(v[0], structures, classname=map_json_name(k, isclass=True) + 'Item',
-                                         lombock=lombock, package=package, ignore=ignore,
+                                         package=package, ignore=ignore, primitive=primitive,
                                          jsonproperty=jsonproperty, jsonignore=jsonignore,
                                          additionalOptions=additionalOptions)
                 classes.extend(other_class)
@@ -111,7 +107,7 @@ def main():
     if type(json_dict) == list:
         json_dict = json_dict[0]
 
-    classes = json2class(json_dict, {}, classname=args.classname, lombock=args.lombock,
+    classes = json2class(json_dict, {}, classname=args.classname, primitive=args.primitive,
                          package=args.package, jsonproperty=args.jsonproperty, ignore=args.ignore,
                          inner=args.inner, jsonignore=args.jsonignore, additionalOptions=args.additionalOptions)
 

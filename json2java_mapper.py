@@ -28,12 +28,12 @@ def map_json_name(name, isclass=False):
     return java_name
 
 
-def map_json_type(jstype):
+def map_json_type(jstype, primitive):
     if jstype == str:
         return 'String'
     elif jstype == int:
-        return 'int'
+        return 'int' if primitive else 'Integer'
     elif jstype == float:
-        return 'BigDecimal'
+        return 'float' if primitive else 'BigDecimal'
     elif jstype == bool:
-        return 'boolean'
+        return 'boolean' if primitive else 'Boolean'

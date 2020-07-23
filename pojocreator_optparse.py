@@ -26,6 +26,8 @@ def set_parse_option():
                            'It must contain the subpath \'src/main/java/\' and the next portion will represent '
                            'the package name for the class/es')
     parser.add_option('-I', '--inner', default=False, action='store_true', dest='inner', help='Use inner classes')
+    parser.add_option('-s', '--primitive', default=False, action='store_true', dest='primitive',
+                      help='Use primitive types')
     parser.add_option('--ignore', default=None, dest='ignore',
                       help='Comma separated list. json fields in list will be ignored building java class')
     parser.add_option('-f', '--conf', default=False, dest='conf', action='store_true',

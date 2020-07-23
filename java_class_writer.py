@@ -9,6 +9,16 @@ def get_class_header_name(static, classname, indlevel=0, superclass=None, serial
            ' {\n'
 
 
+def check_type(jtype):
+    if jtype == 'BigDecimal':
+        return 'java.math.BigDecimal'
+    if jtype == 'Integer':
+        return 'java.lang.Integer'
+    if jtype == 'Boolean':
+        return 'java.lang.Boolean'
+    return None
+
+
 class JavaField:
     def __init__(self, jtype, name, indlevel=0, accessor='private'):
         self.type = jtype
@@ -54,8 +64,9 @@ class JavaClass:
         self.classannotations.append(anns)
 
     def add_field(self, name, fieldtype, jsonproperty=None, jsonignore=False):
-        if fieldtype == 'BigDecimal':
-            self.add_import('import java.math.BigDecimal;')
+        _import = check_type(fieldtype)
+        if _import is not None:
+            self.add_import(f'import {_import};\n')
         field = JavaField(fieldtype, name)
 
         if jsonproperty is not None:
