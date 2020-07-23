@@ -7,9 +7,11 @@ from java_class_writer import *
 from pojocreator_optparse import pojo_creator_argparse
 from json2java_mapper import map_json_name, map_json_type
 
+
 def forall(__foo, __list):
     for item in __list:
         __foo(item)
+
 
 def print_version():
     with open('resource/info.json') as jsoninfo:
@@ -52,16 +54,14 @@ def json2class(_json, structures, **kwargs):
 
     classes = []
 
-    if lombock:
-        jclass.imports.extend(read_file('resource/imports.txt'))
-        jclass.add_annotations(read_file('resource/lombock.txt'))
+    # if lombock:
+    #     jclass.imports.extend(read_file('resource/imports.txt'))
+    #     jclass.add_annotations(read_file('resource/lombock.txt'))
 
     for k, v in [(k1, v1) for k1, v1 in _json.items() if v1 not in ignore]:
         jtype = map_json_type(type(v))
         if jtype is not None:
-            jclass.add_field(map_json_name(k), jtype,
-                             jsonproperty=k, jsonignore=jsonignore, getter=not lombock, setter=not lombock,
-                             constructors=not lombock)
+            jclass.add_field(map_json_name(k), jtype, jsonproperty=k, jsonignore=jsonignore)
         elif type(v) == dict:
             existent_class = new_class_structure(v, structures)
             if existent_class is None:
@@ -73,12 +73,10 @@ def json2class(_json, structures, **kwargs):
                                          additionalOptions=additionalOptions)
                 classes.extend(other_class)
                 jclass.add_field(map_json_name(k), map_json_name(k, isclass=True), jsonproperty=k,
-                                 jsonignore=jsonignore, getter=not lombock, setter=not lombock,
-                                 constructors=not lombock)
+                                 jsonignore=jsonignore)
             else:
                 jclass.add_field(map_json_name(k), map_json_name(existent_class, isclass=True), jsonproperty=k,
-                                 jsonignore=jsonignore, getter=not lombock, setter=not lombock,
-                                 constructors=not lombock)
+                                 jsonignore=jsonignore)
         elif type(v) == list and len(v) > 0:
             existent_class = new_class_structure(v[0], structures)
             jclass.add_import('import java.util.List;\n')
@@ -90,12 +88,10 @@ def json2class(_json, structures, **kwargs):
                                          additionalOptions=additionalOptions)
                 classes.extend(other_class)
                 jclass.add_field(map_json_name(k), f'List<{map_json_name(k, isclass=True)}>', jsonproperty=k,
-                                 jsonignore=jsonignore, getter=not lombock, setter=not lombock,
-                                 constructors=not lombock)
+                                 jsonignore=jsonignore)
             else:
                 jclass.add_field(map_json_name(k), f'List<{map_json_name(existent_class, isclass=True)}>',
-                                 jsonproperty=k, jsonignore=jsonignore, getter=not lombock, setter=not lombock,
-                                 constructors=not lombock)
+                                 jsonproperty=k, jsonignore=jsonignore)
 
     classes.append(jclass)
     return classes
@@ -119,11 +115,20 @@ def main():
                          package=args.package, jsonproperty=args.jsonproperty, ignore=args.ignore,
                          inner=args.inner, jsonignore=args.jsonignore, additionalOptions=args.additionalOptions)
 
+    if args.additionalOptions['superclass'] is not None:
+        classes[-1].superclass = args.additionalOptions['superclass']
+
     for jclass in classes:
         jclass.serializable = args.additionalOptions['serializable']
 
-    if args.additionalOptions['superclass'] is not None:
-        classes[-1].superclass = args.additionalOptions['superclass']
+        if args.additionalOptions['hideDefaulConstructor'] and jclass.default_constructor is not None:
+            jclass.default_constructor.public = False
+
+        if not args.additionalOptions['builder']:
+            jclass.builder = None
+
+        if args.lombock:
+            jclass.use_lombock()
 
     JavaClassWriter(classes, path=args.path, inner=args.inner).write()
 

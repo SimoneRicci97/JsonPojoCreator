@@ -113,7 +113,7 @@ def pojo_creator_argparse():
 
     options.ignore = check_csl_arg(options.ignore)
     if options.ignore is None:
-        bad_args_error('ignore mast be a comma separated list id running by command line, or a JSON array '
+        bad_args_error('ignore must be a comma separated list id running by command line, or a JSON array '
                        'if running by conf file')
 
     return options

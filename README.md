@@ -45,7 +45,8 @@ name of the class representing the JSON object.
 - "superclass" (type: string) which allows you to specify the superclass of your main Pojo
 - "serializable" (type: boolean) make **ALL** the created classes serializable (with the _implements_ construct and a 
 _static final long serialVersionUID_) 
-- "builder" (type: boolean) add a builder to every created class (using @Builder annotation if lombock is used) (TBD)
+- "hideDefaulConstructor" (type: boolean) make default constructors of your Pojos private. 
+- "builder" (type: boolean) add a builder to every created class (using @Builder annotation if lombock is used) 
 
 ### Coming soon
 - More libraries (as Gson, javax and so on) to allow you to manipulate JSON and Java object as you prefer
