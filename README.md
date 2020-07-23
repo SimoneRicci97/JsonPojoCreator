@@ -50,6 +50,11 @@ _static final long serialVersionUID_)
 - "builder" (type: boolean) add a builder to every created class (using @Builder annotation if lombock is used) 
 
 ### Coming soon
+- At the end of the building pojoc will create a main class with the code to instantiate and serialize the created Pojo.
+The code will be executed and the JSON will be printed to the stdout, so you can check the differences with the source 
+JSON. Little spoiler: **there won't be** :smirk:.  
+Yes, this feature is just for developer of little faith.  
+N.B.: _java_ and _javac_ must be runnable on your pc. 
 - More libraries (as Gson, javax and so on) to allow you to manipulate JSON and Java object as you prefer
 - The overriding of toString, equals and hashCode methods
 - A simple GUI to make you faster to build your Java pojo
