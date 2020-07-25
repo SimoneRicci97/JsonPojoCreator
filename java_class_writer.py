@@ -19,6 +19,10 @@ def check_type(jtype):
     return None
 
 
+def is_lang_type(field_type):
+    return field_type in ['int', 'Integer', 'String', 'float', 'BigDecimal', 'boolean', 'Boolean']
+
+
 class JavaField:
     def __init__(self, jtype, name, indlevel=0, accessor='private'):
         self.type = jtype
@@ -172,7 +176,8 @@ class JavaClass:
     def get_methods(self):
         self_mtd = ''
         self_mtd += str(self.default_constructor) if self.default_constructor is not None else ''
-        self_mtd += str(self.all_args_constructor) if self.all_args_constructor is not None else ''
+        self_mtd += str(self.all_args_constructor) if self.all_args_constructor is not None and \
+            len(self.fields) > 0 else ''
         if all(list(map(lambda g: type(g) == Getter, self.getters))):
             self_mtd += ''.join([str(g) for g in self.getters])
             self_mtd += '\n'
@@ -227,7 +232,7 @@ class JavaClassWriter:
         self.path = kwargs['path']
         self.javaclasses = javaclasses
         self.f = None
-        self.use_inner = kwargs['inner']
+        self.use_inner = kwargs['inner'] if 'inner' in kwargs else False
 
     @staticmethod
     def __writelines(lines, f):

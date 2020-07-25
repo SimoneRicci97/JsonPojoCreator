@@ -41,8 +41,8 @@ arguments are that you can quickly change it to build different Java entity base
 same time it's quickly reusable to translate different Json schemes using the same options.
 In addition you can specify a customizable option (through a property named "additionalOptions").  
 The value of "additionalOptions" is a JSON object that represents a key-value map. The properties of this map can be:
-- The names of fields that in JSON scheme have another JSON object as value. The value mapped to this key will be the 
-name of the class representing the JSON object.
+- "alternativeNames" is a string to string map whose names of fields that in JSON scheme have another JSON object as 
+value. The value mapped to this key will be the name of the class representing the JSON object.
 - "superclass" (type: string) which allows you to specify the superclass of your main Pojo
 - "serializable" (type: boolean) make **ALL** the created classes serializable (with the _implements_ construct and a 
 _static final long serialVersionUID_) 
