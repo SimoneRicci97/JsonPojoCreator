@@ -38,6 +38,16 @@ def json_skeleton(json_dict):
     return d
 
 
+def clear_statement(stm, indentations=0, fromind=0):
+    lstm = stm[fromind:]
+    stm_len = 80
+    if len(lstm) > stm_len:
+        ind = stm[:fromind+stm_len].rfind(' ')
+        stm = stm[:ind] + '\n' + '\t' * indentations + stm[ind+1:]
+        return clear_statement(stm, indentations, ind)
+    return stm
+
+
 def new_class_structure(dict_class, found):
     for classname, structure in found.items():
         existent = json_skeleton(structure)
@@ -52,16 +62,12 @@ def new_class_structure(dict_class, found):
 
 
 def get_class_by_name(classes, alt_names, name):
-    # print(alt_names.keys())
-    # print(f"Looking for class {name}->", end='')
-    if name.count('<') > 0 and name.count('>') > 0:
-        name = name[name.index('<')+1:name.index('>')]
-    # print(f"{name} ->", end='')
+    if name.count('[]'):
+        name = name[:name.index('[]')]
     if name in alt_names:
         _name = alt_names[name]
     else:
         _name = map_json_name(name, isclass=True)
-    # print(f"{_name} ")
     for jclass in classes:
         if jclass.name == _name:
             return jclass
@@ -79,37 +85,42 @@ def get_field_value(_json, alt_names, name):
 
 
 def get_class_instance(pojo, classes, alt_names, values):
-    statements = list()
+    args = list()
     for field in pojo.fields:
         if is_lang_type(field.type):
             if field.type == 'String':
-                stm = f"{field.type} {field.name} = \"{get_field_value(values, alt_names, field.name)}\";"
+                arg = f"\"{get_field_value(values, alt_names, field.name)}\""
             else:
-                stm = f"{field.type} {field.name} = {get_field_value(values, alt_names, field.name)};"
-            if statements.count(stm) == 0:
-                statements.append(stm)
+                arg = f"{get_field_value(values, alt_names, field.name)}"
+            args.append(arg)
+        elif field.type.endswith('[]'):
+            fieldclass = get_class_by_name(classes, alt_names, field.type)
+            instance_statement = get_class_instance(fieldclass, classes, alt_names, values)
+            args.append(f"new {field.type} " + "{" + f"{instance_statement}" + "}")
         else:
             fieldclass = get_class_by_name(classes, alt_names, field.type)
-            instance_statements = get_class_instance(fieldclass, classes, alt_names, values)
-            for stm in instance_statements:
-                if statements.count(stm) == 0:
-                    statements.append(stm)
-            instance = f"{fieldclass.name} {field.name} = {fieldclass.all_args_constructor.strcall([stm.split()[1] for stm in instance_statements])}"
-            statements.append(instance)
-    # print("=" * len(f"Instance for {pojo.name}"))
-    # print(f"Instance for {pojo.name}")
-    # print('\n\t'.join(statements))
-    # print("=" * len(f"Instance for {pojo.name}"))
-    return statements
+            instance_statement = get_class_instance(fieldclass, classes, alt_names, values)
+            args.append(instance_statement)
+    return pojo.all_args_constructor.strcall(args)
 
 
 def main_class(pojo, classes, **kwargs):
     package = kwargs['package']
     _json = kwargs['json']
     alt_names = kwargs['alt_names']
-    jclass = JavaClass('IfYouDontTrustMe', package)
+    jclass = JavaClass('Main', '')
+    jclass.add_import(f"import {package}.*;\n")
+    jclass.add_import(f"import com.fasterxml.jackson.core.JsonProcessingException;\n")
     main_method = StaticMethod(jclass, 'main', 'void', [JavaField('String[]', 'args')])
-    main_method.statements.extend(get_class_instance(pojo, classes, alt_names, _json))
+    main_method.throwing.append('JsonProcessingException')
+    main_method.statements.append(clear_statement(f"{pojo.name} {pojo.name.lower()} = " +
+                                                  get_class_instance(pojo, classes, alt_names, _json) + ';\n',
+                                                  indentations=2))
+    jclass.add_import("import com.fasterxml.jackson.databind.ObjectMapper;\n")
+    main_method.statements.append('ObjectMapper om = new ObjectMapper();\n')
+    main_method.statements.append(f"String __json_string__ = om.writeValueAsString({pojo.name.lower()});\n")
+    main_method.statements.append('System.out.println(__json_string__);\n')
+
     jclass.methods.append(main_method)
     jclass.default_constructor = None
     jclass.all_args_constructor = None
@@ -129,13 +140,12 @@ def json2class(_json, structures, **kwargs):
     if 'alternativeNames' not in additional_options:
         additional_options['alternativeNames'] = dict()
     jclass = JavaClass(classname, package, extclass)
-    print(id(additional_options))
     classes = []
 
     for k, v in [(k1, v1) for k1, v1 in _json.items() if v1 not in ignore]:
         jtype = map_json_type(type(v), primitive)
         if jtype is not None:
-            jclass.add_field(map_json_name(k), jtype, jsonproperty=k, jsonignore=jsonignore)
+            jclass.add_field(map_json_name(k), jtype, jsonproperty=(k if jsonproperty else None), jsonignore=jsonignore)
         elif type(v) == dict:
             existent_class = new_class_structure(v, structures)
             fieldclassname = map_json_name(k, isclass=True) if k not in additional_options['alternativeNames'] \
@@ -144,14 +154,14 @@ def json2class(_json, structures, **kwargs):
                 structures[fieldclassname] = v
                 other_class = json2class(v, structures, classname=fieldclassname, primitive=primitive,
                                          package=package, ignore=ignore,
-                                         jsonproperty=jsonproperty, jsonignore=jsonignore,
+                                         jsonproperty=(k if jsonproperty else None), jsonignore=jsonignore,
                                          additionalOptions=additional_options)
                 classes.extend(other_class)
-                jclass.add_field(map_json_name(k), fieldclassname, jsonproperty=k,
+                jclass.add_field(map_json_name(k), fieldclassname, jsonproperty=(k if jsonproperty else None),
                                  jsonignore=jsonignore)
             else:
                 additional_options['alternativeNames'][map_json_name(k)] = fieldclassname
-                jclass.add_field(map_json_name(k), fieldclassname, jsonproperty=k,
+                jclass.add_field(map_json_name(k), fieldclassname, jsonproperty=(k if jsonproperty else None),
                                  jsonignore=jsonignore)
         elif type(v) == list and len(v) > 0:
             existent_class = new_class_structure(v[0], structures)
@@ -162,16 +172,26 @@ def json2class(_json, structures, **kwargs):
                 structures[fieldclassname] = v[0]
                 other_class = json2class(v[0], structures, classname=fieldclassname,
                                          package=package, ignore=ignore, primitive=primitive,
-                                         jsonproperty=jsonproperty, jsonignore=jsonignore,
+                                         jsonproperty=(k if jsonproperty else None), jsonignore=jsonignore,
                                          additionalOptions=additional_options)
                 classes.extend(other_class)
-                jclass.add_field(map_json_name(k), f'List<{fieldclassname}>', jsonproperty=k, jsonignore=jsonignore)
+                jclass.add_field(map_json_name(k), f'{fieldclassname}[]', jsonproperty=(k if jsonproperty else None), jsonignore=jsonignore)
             else:
                 additional_options['alternativeNames'][map_json_name(k)] = existent_class
-                jclass.add_field(map_json_name(k), f'List<{existent_class}>', jsonproperty=k, jsonignore=jsonignore)
+                jclass.add_field(map_json_name(k), f'{existent_class}[]', jsonproperty=(k if jsonproperty else None), jsonignore=jsonignore)
 
     classes.append(jclass)
     return classes
+
+
+def make_user_trust(classpath, package):
+    os.chdir(classpath)
+    print(classpath)
+    print(package)
+    lib_claspath = "jackson-databind-2.11.1.jar;jackson-annotations-2.11.1.jar;jackson-core-2.11.1.jar"
+    os.system(f"javac -cp \".;{lib_claspath}\" {package}/*.java")
+    os.system(f"javac -cp \".;{lib_claspath}\" Main.java")
+    os.system(f"java -cp \".;{lib_claspath}\" Main")
 
 
 def main():
@@ -192,7 +212,7 @@ def main():
                          package=args.package, jsonproperty=args.jsonproperty, ignore=args.ignore,
                          inner=args.inner, jsonignore=args.jsonignore, additionalOptions=args.additionalOptions)
 
-    if args.additionalOptions['superclass'] is not None:
+    if 'superclass' in args.additionalOptions:
         classes[-1].superclass = args.additionalOptions['superclass']
 
     for jclass in classes:
@@ -211,8 +231,9 @@ def main():
 
     mainclass = main_class(classes[-1], classes, package=args.package, json=json_dict,
                             alt_names=args.additionalOptions['alternativeNames'])
-    JavaClassWriter([mainclass], path=args.path).write()
-
+    JavaClassWriter([mainclass], path=args.path[:args.path.index('src/main/java')+len('src/main/java')]).write()
+    make_user_trust(args.path[:args.path.index('src/main/java')+len('src/main/java')],
+                    args.path[args.path.index('src/main/java')+len('src/main/java') + 1:])
 
 if __name__ == '__main__':
     main()

@@ -45,7 +45,7 @@ class JavaClass:
         self.extclass = extclass
         self.name = classname
         self.indlevel = 1 if extclass is not None else 0
-        self.all_args_constructor = Constructor(self, self.name, indlevel=self.indlevel)
+        self.all_args_constructor = Constructor(self, self.name, [], indlevel=self.indlevel)
         self.package = package
         self.superclass = superclass
         self.serializable = serializable
@@ -129,7 +129,8 @@ class JavaClass:
                                           self.name, self.indlevel, self.superclass, self.serializable)
         self_hdr = ''
         if self.extclass is None:
-            self_hdr += f'package {self.package};\n\n' if self.package is not None else '\n'
+            if self.package is not None and len(self.package) > 0:
+                self_hdr += f'package {self.package};\n\n' if self.package is not None else '\n'
             self_hdr += ''.join(self.imports)
         self_hdr += '\n' + ''.join(['\t' * self.indlevel + ann for ann in self.classannotations])
         self_hdr += classname
@@ -141,7 +142,7 @@ class JavaClass:
         self_ftr = ''
         if self.serializable:
             self_ftr += '\n' + '\t' * self.indlevel + f"\tprivate static final long serialVersionUID = " \
-                        f"-{random.randint(20, 30) ** random.randint(20, 30)}L;\n"
+                        f"-{str(random.randint(20, 30) ** random.randint(20, 30))[:8]}L;\n"
         self_ftr += '\n'.join(['\t' * self.indlevel + str(ic) for ic in self.innerclasses])
         self_ftr += '\n'
         self_ftr += self.get_fields()
