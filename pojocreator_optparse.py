@@ -103,7 +103,6 @@ def pojo_creator_argparse():
 
         if options.package[-1] == '/':
             options.package = options.package[:-1]
-        print(options.package)
         if options.package.count(java_subpath) > 0:
             options.path = options.package
             options.package = options.package[options.package.index(java_subpath) + len(java_subpath) + 1:] \

@@ -6,6 +6,8 @@ class Method:
         self.parameters = parameters
         self.public = public
         self.indlevel = indlevel
+        self.statements = []
+        self.throwing = []
 
     def get_signature(self):
         signature = '\t' * self.indlevel + '\tpublic ' if self.public else '\tprivate '
@@ -14,72 +16,97 @@ class Method:
         for a in self.parameters:
             signature += f"{a.type} {a.name}"
             signature += ', ' if a != self.parameters[-1] else ''
-        signature += ') {\n'
+        signature += ') '
+        if len(self.throwing) > 0:
+            signature += 'throws '
+            for e in self.throwing:
+                signature += e
+                signature += ', ' if e != self.throwing[-1] else ''
+        signature += '{\n'
         return signature
 
     def strcall(self, arguments):
         strc = f"{self.method_name}("
         for a in arguments:
-            strc += f"{a.name}"
+            strc += a
             strc += ', ' if a != arguments[-1] else ''
-        strc += ');\n'
+        strc += ')'
         return strc
 
     def get_body(self):
-        return '\t' * self.indlevel + '\t}\n\n'
+        body = ''
+        for stm in self.statements:
+            body += '\t' * self.indlevel + '\t\t' + stm + '\n'
+        return body + '\t' * self.indlevel + '\t}\n\n'
 
     def __str__(self):
         return self.get_signature() + self.get_body()
 
+    def add_paramter(self, p):
+        self.parameters.append(p)
 
-class DefaultConstructor(Method):
-    def __init__(self, jclass, classname, indlevel=0, public=True):
-        super().__init__(jclass, classname, None, [], indlevel=indlevel, public=public)
+
+
+class Constructor(Method):
+    def __init__(self, jclass, classname, parameters, indlevel=0):
+        super().__init__(jclass, classname, None, parameters, indlevel=indlevel)
+        for a in self.parameters:
+            self.statements.append(f"this.{a.name} = {a.name};")
 
     def add_field(self, field):
-        pass
-
-    def get_body(self):
-        return '\t' * self.indlevel + '\t\tsuper();\n' + super().get_body()
+        self.parameters.append(field)
+        for a in self.parameters:
+            self.statements.append(f"this.{a.name} = {a.name};")
 
     def strcall(self, arguments):
         return 'new ' + super().strcall(arguments)
 
 
-class Constructor(DefaultConstructor):
-    def __init__(self, jclass, classname, indlevel=0):
-        super().__init__(jclass, classname, indlevel=indlevel)
+class DefaultConstructor(Constructor):
+    def __init__(self, jclass, classname, indlevel=0, public=True):
+        super().__init__(jclass, classname, [], indlevel=indlevel)
+        self.public = public
+        self.statements.append('super();')
 
     def add_field(self, field):
-        self.parameters.append(field)
+        pass
 
-    def get_body(self):
-        self_str = ''
-        for a in self.parameters:
-            self_str += '\t' * self.indlevel + f"\t\tthis.{a.name} = {a.name};\n"
-        self_str += '\t' * self.indlevel + '\t}\n\n'
-        return self_str
-
+    def strcall(self, arguments):
+        return super().strcall(arguments)
 
 class Getter(Method):
     def __init__(self, jclass, field, prefix='get', indlevel=0):
-        super().__init__(jclass, f"{prefix}{field.name.capitalize()}", field.type, [field], indlevel=indlevel)
+        super().__init__(jclass, f"{prefix}{field.name.capitalize()}", field.type, [], indlevel=indlevel)
         self.field = field
-
-    def get_body(self):
-        return '\t' * self.indlevel + f"\t\treturn this.{self.field.name};\n" + super().get_body()
+        self.statements.append(f"return this.{self.field.name};")
 
 
 class Setter(Method):
     def __init__(self, jclass, field, prefix='set', indlevel=0):
         super().__init__(jclass, f"{prefix}{field.name.capitalize()}", jclass.name, [field], indlevel=indlevel)
         self.field = field
+        self.statements.extend([f"this.{self.field.name} = {self.field.name};", "return this;"])
 
-    def get_body(self):
-        self_str = '\t' * self.indlevel + f"\t\tthis.{self.field.name} = {self.field.name};\n"
-        self_str += '\t' * self.indlevel + "\t\treturn this;\n"
-        self_str += super().get_body()
-        return self_str
+
+class StaticMethod(Method):
+    def __init__(self, jclass, method_name, return_type, parameters, public=True, indlevel=0):
+        super().__init__(jclass, method_name, return_type, parameters, public=public, indlevel=indlevel)
+
+    def get_signature(self):
+        signature = '\t' * self.indlevel + '\tpublic static ' if self.public else '\tprivate '
+        signature += (f"{self.return_type} " if self.return_type is not None else '')
+        signature += f"{self.method_name}("
+        for a in self.parameters:
+            signature += f"{a.type} {a.name}"
+            signature += ', ' if a != self.parameters[-1] else ''
+        signature += ') '
+        if len(self.throwing) > 0:
+            signature += 'throws '
+            for e in self.throwing:
+                signature += e
+                signature += ', ' if e != self.throwing[-1] else ''
+        signature += '{\n'
+        return signature
 
 
 class BuilderMethod(Method):
@@ -87,6 +114,6 @@ class BuilderMethod(Method):
         super().__init__(jclass, 'build', buildedclass.name, [], indlevel=indlevel)
 
     def get_body(self):
-        self_str = '\t' * self.indlevel + '\t\treturn '
-        self_str += self.jclass.extclass.all_args_constructor.strcall(self.jclass.fields)
-        return self_str + super().get_body()
+        self.statements.append("return " + self.jclass.extclass.all_args_constructor.strcall(
+            [field.name for field in self.jclass.fields]) + ';\n')
+        return super().get_body()
