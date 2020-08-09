@@ -111,7 +111,7 @@ def main():
                          package=args.package, jsonproperty=args.jsonproperty, ignore=args.ignore,
                          inner=args.inner, jsonignore=args.jsonignore, additionalOptions=args.additionalOptions)
 
-    if args.additionalOptions['superclass'] is not None:
+    if 'superclass' in args.additionalOptions:
         classes[-1].superclass = args.additionalOptions['superclass']
 
     for jclass in classes:

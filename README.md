@@ -14,7 +14,7 @@ proper lombock annotation.
 
 N.B.: for setters methods **pojoc** use the chain pattern. It's so. You can change it? No. Is there an option to build 
 setter method with no chain pattern? No. If you don't like chain pattern you deserve to build your pojo with your own 
-hand.
+hands.
 
 ## pojoc options
 - `-h, --help` do you really need this option explained?
