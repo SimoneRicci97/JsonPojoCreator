@@ -48,13 +48,18 @@ value. The value mapped to this key will be the name of the class representing t
 _static final long serialVersionUID_) 
 - "hideDefaulConstructor" (type: boolean) make default constructors of your Pojos private. 
 - "builder" (type: boolean) add a builder to every created class (using @Builder annotation if lombock is used) 
+- "IDontBelieve" (type: boolean) if true create a java main which instantiate an object of your main pojo and serialize 
+it, printing the json string to stdout 
 
-### Coming soon
-- At the end of the building pojoc will create a main class with the code to instantiate and serialize the created Pojo.
+
+### Don't you belienìve in me?
+If so, I suggest you to abilitate the option _IDontBelieve_. At the end of the building pojoc will create a main class with the code to instantiate and serialize the created Pojo.
 The code will be executed and the JSON will be printed to the stdout, so you can check the differences with the source 
 JSON. Little spoiler: **there won't be** :smirk:.  
 Yes, this feature is just for developer of little faith.  
 N.B.: _java_ and _javac_ must be runnable on your pc. 
+
+### Coming soon
 - More libraries (as Gson, javax and so on) to allow you to manipulate JSON and Java object as you prefer
 - The overriding of toString, equals and hashCode methods
 - A simple GUI to make you faster to build your Java pojo

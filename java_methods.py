@@ -46,7 +46,6 @@ class Method:
         self.parameters.append(p)
 
 
-
 class Constructor(Method):
     def __init__(self, jclass, classname, parameters, indlevel=0):
         super().__init__(jclass, classname, None, parameters, indlevel=indlevel)
@@ -73,6 +72,7 @@ class DefaultConstructor(Constructor):
 
     def strcall(self, arguments):
         return super().strcall(arguments)
+
 
 class Getter(Method):
     def __init__(self, jclass, field, prefix='get', indlevel=0):
