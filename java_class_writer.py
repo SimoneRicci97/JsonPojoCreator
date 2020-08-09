@@ -19,6 +19,10 @@ def check_type(jtype):
     return None
 
 
+def is_lang_type(field_type):
+    return field_type in ['int', 'Integer', 'String', 'float', 'BigDecimal', 'boolean', 'Boolean']
+
+
 class JavaField:
     def __init__(self, jtype, name, indlevel=0, accessor='private'):
         self.type = jtype
@@ -41,7 +45,7 @@ class JavaClass:
         self.extclass = extclass
         self.name = classname
         self.indlevel = 1 if extclass is not None else 0
-        self.all_args_constructor = Constructor(self, self.name, indlevel=self.indlevel)
+        self.all_args_constructor = Constructor(self, self.name, [], indlevel=self.indlevel)
         self.package = package
         self.superclass = superclass
         self.serializable = serializable
@@ -125,7 +129,8 @@ class JavaClass:
                                           self.name, self.indlevel, self.superclass, self.serializable)
         self_hdr = ''
         if self.extclass is None:
-            self_hdr += f'package {self.package};\n\n' if self.package is not None else '\n'
+            if self.package is not None and len(self.package) > 0:
+                self_hdr += f'package {self.package};\n\n' if self.package is not None else '\n'
             self_hdr += ''.join(self.imports)
         self_hdr += '\n' + ''.join(['\t' * self.indlevel + ann for ann in self.classannotations])
         self_hdr += classname
@@ -137,7 +142,7 @@ class JavaClass:
         self_ftr = ''
         if self.serializable:
             self_ftr += '\n' + '\t' * self.indlevel + f"\tprivate static final long serialVersionUID = " \
-                        f"-{random.randint(20, 30) ** random.randint(20, 30)}L;\n"
+                        f"-{str(random.randint(20, 30) ** random.randint(20, 30))[:8]}L;\n"
         self_ftr += '\n'.join(['\t' * self.indlevel + str(ic) for ic in self.innerclasses])
         self_ftr += '\n'
         self_ftr += self.get_fields()
@@ -172,7 +177,8 @@ class JavaClass:
     def get_methods(self):
         self_mtd = ''
         self_mtd += str(self.default_constructor) if self.default_constructor is not None else ''
-        self_mtd += str(self.all_args_constructor) if self.all_args_constructor is not None else ''
+        self_mtd += str(self.all_args_constructor) if self.all_args_constructor is not None and \
+            len(self.fields) > 0 else ''
         if all(list(map(lambda g: type(g) == Getter, self.getters))):
             self_mtd += ''.join([str(g) for g in self.getters])
             self_mtd += '\n'
@@ -227,7 +233,7 @@ class JavaClassWriter:
         self.path = kwargs['path']
         self.javaclasses = javaclasses
         self.f = None
-        self.use_inner = kwargs['inner']
+        self.use_inner = kwargs['inner'] if 'inner' in kwargs else False
 
     @staticmethod
     def __writelines(lines, f):
