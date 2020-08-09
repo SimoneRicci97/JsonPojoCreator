@@ -6,7 +6,7 @@ from json2java_mapper import map_json_name
 
 ERR_BAD_ARGS = 2
 
-CONF_FILE = 'pojobuilder.conf.json'
+CONF_FILE = 'resource/pojobuilder.conf.json'
 
 
 def set_parse_option():

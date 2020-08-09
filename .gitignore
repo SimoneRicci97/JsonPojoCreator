@@ -133,7 +133,7 @@ dmypy.json
 src/
 out/
 test/test.py
-pojobuilder.conf.json
+resource/pojobuilder.conf.json
 
 # PyCharm
 .idea
